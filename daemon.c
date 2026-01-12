@@ -13,21 +13,25 @@ void handle_sigterm(int sig) {
 int main() {
     signal(SIGTERM, handle_sigterm);
 
-    printf("daemon temporizador iniciado\n");
+    printf("responsive daemon started\n");
     fflush(stdout);
-    
-    const int interval = 5; // segundos
-    while (running) {
-        // ação mínima: log com timestamp
+
+    const int interval = 5; // seconds
+    time_t next_tick = time(NULL) + interval;
+
+    while(running){
         time_t now = time(NULL);
-        printf("tick at %s", ctime(&now));
-        fflush(stdout);
-        // dormir de forma eficiente
-        sleep(interval);
+
+        if(now >= next_tick){
+            printf("tick at %s", ctime(&now));
+            fflush(stdout);
+            next_tick += interval;
+        }
+
+        usleep(500000); // 500ms
     }
 
-    printf("daemon temporizador encerrado\n");
+    printf("deamon responsive sttoped\n");
     fflush(stdout);
-
     return 0;
 }
