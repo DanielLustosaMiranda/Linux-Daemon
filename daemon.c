@@ -3,6 +3,10 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 
 volatile sig_atomic_t running = 1;
 
@@ -11,12 +15,40 @@ void handle_sigterm(int sig) {
     running = 0;
 }
 
+void notify(const char *title, const char *body) {
+    pid_t pid = fork();
+
+    if (pid < 0) {
+        perror("fork");
+        return;
+    }
+
+    if (pid == 0) {
+
+        char *argv[] = {
+            "notify-send",
+            (char *)title,
+            (char *)body,
+            NULL
+        };
+
+        execvp("notify-send", argv);
+
+        perror("execvp");
+        _exit(1);
+    }
+}
+
 void check_action(const char *action){
     if (action) {
-        if (strcmp(action, "add") == 0)
+        if (strcmp(action, "add") == 0){
             printf("USB connected\n");
-        else if (strcmp(action, "remove") == 0)
+            notify("USB CONNECTED", "You connected a usb device");
+        }
+        else if (strcmp(action, "remove") == 0){
             printf("USB removed\n");
+            notify("USB DISCONNECTED", "You disconnected a usb device");
+        }
 
         fflush(stdout);
     }
@@ -26,7 +58,6 @@ int main(void) {
     struct udev *udev;
     struct udev_monitor *mon;
     int fd;
-
 
     signal(SIGTERM, handle_sigterm);
 
