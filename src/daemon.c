@@ -2,11 +2,9 @@
 #include <signal.h>
 #include <stdio.h>
 #include <string.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <unistd.h>
 
 volatile sig_atomic_t running = 1;
 
@@ -25,12 +23,7 @@ void notify(const char *title, const char *body) {
 
     if (pid == 0) {
 
-        char *argv[] = {
-            "notify-send",
-            (char *)title,
-            (char *)body,
-            NULL
-        };
+        char *argv[] = {"notify-send", (char *)title, (char *)body, NULL};
 
         execvp("notify-send", argv);
 
@@ -39,13 +32,12 @@ void notify(const char *title, const char *body) {
     }
 }
 
-void check_action(const char *action){
+void check_action(const char *action) {
     if (action) {
-        if (strcmp(action, "add") == 0){
+        if (strcmp(action, "add") == 0) {
             printf("USB connected\n");
             notify("USB CONNECTED", "You connected a usb device");
-        }
-        else if (strcmp(action, "remove") == 0){
+        } else if (strcmp(action, "remove") == 0) {
             printf("USB removed\n");
             notify("USB DISCONNECTED", "You disconnected a usb device");
         }
@@ -93,7 +85,8 @@ int main(void) {
             struct udev_device *dev;
 
             dev = udev_monitor_receive_device(mon);
-            if (!dev) continue;
+            if (!dev)
+                continue;
 
             const char *action = udev_device_get_action(dev);
 
