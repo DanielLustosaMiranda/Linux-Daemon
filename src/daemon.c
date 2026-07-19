@@ -6,6 +6,9 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
+const char* icon = "/usr/share/usb-notifier/usb-icon.jpeg";
+const char* urgency = "normal";
+
 volatile sig_atomic_t running = 1;
 
 void handle_sigterm(int sig) {
@@ -13,17 +16,18 @@ void handle_sigterm(int sig) {
     running = 0;
 }
 
-void notify(const char *title, const char *body) {
+void notify(const char* title, const char* body, const char* urgency,
+            const char* icon_path) {
     pid_t pid = fork();
 
     if (pid < 0) {
         perror("fork");
         return;
     }
-
     if (pid == 0) {
 
-        char *argv[] = {"notify-send", (char *)title, (char *)body, NULL};
+        char* argv[] = {"notify-send",  (char*)title, (char*)body,      "-u",
+                        (char*)urgency, "-i",         (char*)icon_path, NULL};
 
         execvp("notify-send", argv);
 
@@ -32,33 +36,31 @@ void notify(const char *title, const char *body) {
     }
 }
 
-void check_action(const char *action) {
+void check_action(const char* action) {
     if (action) {
         if (strcmp(action, "add") == 0) {
-            printf("USB connected\n");
-            notify("USB CONNECTED", "You connected a usb device");
+            notify("USB CONNECTED", "You connected a usb device", urgency,
+                   icon);
         } else if (strcmp(action, "remove") == 0) {
-            printf("USB removed\n");
-            notify("USB DISCONNECTED", "You disconnected a usb device");
+            notify("USB DISCONNECTED", "You disconnected a usb device", urgency,
+                   icon);
         }
-
         fflush(stdout);
     }
 }
 
 int main(void) {
-    struct udev *udev;
-    struct udev_monitor *mon;
-    int fd;
 
     signal(SIGTERM, handle_sigterm);
 
+    struct udev* udev;
     udev = udev_new();
     if (!udev) {
         fprintf(stderr, "cannot create udev context\n");
         return 1;
     }
 
+    struct udev_monitor* mon;
     mon = udev_monitor_new_from_netlink(udev, "udev");
     if (!mon) {
         fprintf(stderr, "cannot create udev monitor\n");
@@ -68,9 +70,9 @@ int main(void) {
     udev_monitor_filter_add_match_subsystem_devtype(mon, "usb", NULL);
     udev_monitor_enable_receiving(mon);
 
+    int fd;
     fd = udev_monitor_get_fd(mon);
-
-    printf("usb event daemon started\n");
+    fprintf(stdout, "usb event daemon started\n");
     fflush(stdout);
 
     while (running) {
@@ -82,13 +84,13 @@ int main(void) {
             continue;
 
         if (FD_ISSET(fd, &fds)) {
-            struct udev_device *dev;
+            struct udev_device* dev;
 
             dev = udev_monitor_receive_device(mon);
             if (!dev)
                 continue;
 
-            const char *action = udev_device_get_action(dev);
+            const char* action = udev_device_get_action(dev);
 
             check_action(action);
 

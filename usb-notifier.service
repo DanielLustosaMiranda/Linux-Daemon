@@ -1,0 +1,10 @@
+[Unit]
+Description=USB Verifier Daemon
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/usb-notifier
+Restart=always
+
+[Install]
+WantedBy=default.target
